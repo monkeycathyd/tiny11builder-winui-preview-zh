@@ -1,5 +1,10 @@
 # Tiny11 Builder（中文版）
 
+> [!IMPORTANT]
+> **AI 翻译声明**：本简体中文汉化版的界面文案、提示信息、错误信息与文档，由
+> **DeepSeek-V4.1-Flash** 模型配合 **DeepSeek Harness** 完成 AI 翻译。
+> 译文可能存在偏差或遗漏，欢迎通过 Issue 指正。
+
 用原生 WinUI 应用制作更精简的 Windows 11 ISO。下载微软官方 Windows 映像，
 或使用你自己的映像，选择要移除的内容，然后生成 ISO。
 
@@ -8,10 +13,18 @@
 
 ## 下载
 
-[**获取最新版本**](https://github.com/ntdevlabs/tiny11builder/releases/latest)
+[**获取最新版本**](https://github.com/monkeycathyd/tiny11builder-winui-preview-zh/releases/latest)
 
-Intel / AMD 电脑请选择 **x64**，Windows on ARM 设备请选择 **ARM64**。
-解压整个 ZIP 后打开 `Tiny11Builder.exe`。运行时需要管理员授权。
+发行版提供两种形式：
+
+| 文件 | 说明 |
+| --- | --- |
+| `Tiny11Builder-*-win-x64.exe` | **单文件版**：下载后直接运行，无需解压。 |
+| `Tiny11Builder-*-win-x64.zip` | **压缩包版**：解压整个 ZIP 后打开 `Tiny11Builder.exe`。 |
+
+每个版本都会附带 `.sha256` 校验文件。Intel / AMD 电脑请选择 **x64**；
+Windows on ARM 的 ARM64 版本由 CI 构建，可在 Actions 产物中下载。
+运行时需要管理员授权。
 
 ## 选择构建模式
 
