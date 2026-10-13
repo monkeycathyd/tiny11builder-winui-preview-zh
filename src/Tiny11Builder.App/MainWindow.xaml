@@ -1,0 +1,564 @@
+<Window
+    x:Class="Tiny11Builder.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Tiny11 Builder">
+    <Window.SystemBackdrop><MicaBackdrop Kind="BaseAlt"/></Window.SystemBackdrop>
+    <Grid x:Name="Root">
+        <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid x:Name="TitleArea" Padding="24,0,140,0" ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <FontIcon Glyph="&#xE7F8;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+            <TextBlock Grid.Column="1" Text="Tiny11 Builder" VerticalAlignment="Center" FontWeight="SemiBold"/>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="248"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Grid Padding="16,24,16,20">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <StackPanel Spacing="8">
+                    <TextBlock Text="构建步骤" FontSize="10" CharacterSpacing="160"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="14,0,0,18"/>
+                    <ListView x:Name="StepRail" SelectionChanged="OnRailChanged">
+                        <ListViewItem Tag="0"><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="1" FontFamily="Consolas"/><TextBlock Text="欢迎"/></StackPanel></ListViewItem>
+                        <ListViewItem Tag="1"><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="2" FontFamily="Consolas"/><TextBlock Text="Windows 映像"/></StackPanel></ListViewItem>
+                        <ListViewItem Tag="2"><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="3" FontFamily="Consolas"/><TextBlock Text="移除组件"/></StackPanel></ListViewItem>
+                        <ListViewItem Tag="3"><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="4" FontFamily="Consolas"/><TextBlock Text="构建设置"/></StackPanel></ListViewItem>
+                        <ListViewItem Tag="4"><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="5" FontFamily="Consolas"/><TextBlock Text="检查确认"/></StackPanel></ListViewItem>
+                        <ListViewItem Tag="5"><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="6" FontFamily="Consolas"/><TextBlock Text="创建映像"/></StackPanel></ListViewItem>
+                    </ListView>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Spacing="12">
+                    <Border Style="{StaticResource Card}" Padding="16">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="已选映像" FontSize="10" CharacterSpacing="120"/>
+                            <TextBlock x:Name="ImageBadge" Text="未选择映像" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                            <TextBlock Text="源文件不会被修改。" FontSize="12" Style="{StaticResource Secondary}"/>
+                        </StackPanel>
+                    </Border>
+                    <Button x:Name="ResumeButton" Content="继续构建" Click="OnResume" HorizontalAlignment="Stretch"
+                            AutomationProperties.HelpText="从已保存的进度继续已中断的构建。"/>
+                    <Button x:Name="RecoverButton" Content="恢复工作区" Click="OnRecover" HorizontalAlignment="Stretch"/>
+                    <ComboBox x:Name="ThemeChoice" Header="外观" SelectionChanged="OnThemeChanged" HorizontalAlignment="Stretch" SelectedIndex="0">
+                        <ComboBoxItem Content="系统"/><ComboBoxItem Content="浅色"/><ComboBoxItem Content="深色"/>
+                    </ComboBox>
+                    <HyperlinkButton Content="上游项目 ↗" NavigateUri="https://github.com/ntdevlabs/tiny11builder" Padding="0"/>
+                </StackPanel>
+            </Grid>
+            <Grid Grid.Column="1" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="16,0,0,0"
+                  BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1,1,0,0">
+                <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <!-- The fixed shell row: Back on the left, Cancel on the right, above the scrolling page and its watermark. -->
+                <Grid x:Name="ShellRow" Padding="28,0,28,0" ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <Button x:Name="BackButton" Click="OnBack" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,12,0,0"
+                            Background="Transparent" BorderThickness="0" Padding="12,8" AutomationProperties.Name="返回">
+                        <Button.Content>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <FontIcon Glyph="&#xE72B;" FontSize="16" Opacity="{ThemeResource SubtleIconOpacity}"/>
+                                <TextBlock Text="返回" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </Button.Content>
+                        <Button.KeyboardAccelerators>
+                            <KeyboardAccelerator Key="Left" Modifiers="Menu"/>
+                        </Button.KeyboardAccelerators>
+                    </Button>
+                    <TextBlock x:Name="BusyText" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,12,0,0" IsHitTestVisible="False"
+                               Style="{StaticResource Secondary}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               FontSize="12" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite"/>
+                    <Button x:Name="CancelButton" Grid.Column="2" Style="{StaticResource CriticalButtonStyle}" Visibility="Collapsed" Click="OnCancel"
+                            VerticalAlignment="Top" Margin="0,12,0,0" Padding="14,8" AutomationProperties.Name="安全取消">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE711;" FontSize="14"/>
+                            <TextBlock Text="安全取消"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+                <InfoBar x:Name="Notice" Grid.Row="1" IsOpen="False" IsClosable="True" Margin="32,12,32,0">
+                    <InfoBar.ActionButton>
+                        <Button x:Name="NoticeButton" Click="OnNoticeAction" Visibility="Collapsed"/>
+                    </InfoBar.ActionButton>
+                </InfoBar>
+                <ScrollViewer x:Name="ContentScroller" Grid.Row="2" Padding="40,24,40,20" HorizontalScrollBarVisibility="Disabled"
+                              SizeChanged="OnContentSizeChanged" ViewChanged="OnContentViewChanged">
+                    <Grid HorizontalAlignment="Stretch">
+                        <Grid x:Name="WelcomePanel" RowSpacing="12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Spacing="8">
+                                <TextBlock x:Name="WelcomeTitle" Text="欢迎" FontSize="56" FontWeight="Light" Opacity="{ThemeResource WelcomeTitleOpacity}"
+                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}" TextWrapping="Wrap"
+                                           AutomationProperties.HeadingLevel="Level1"/>
+                                <TextBlock Text="创建自定义的 Windows 11 ISO。选择映像、选择要移除的内容，然后构建 ISO。"
+                                           FontSize="16" Style="{StaticResource Secondary}"/>
+                            </StackPanel>
+                            <Grid Grid.Row="1" RowSpacing="12">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Text="构建模式" FontSize="18" FontWeight="SemiBold"/>
+                                <Grid x:Name="ModeCards" Grid.Row="1" ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/><RowDefinition Height="0"/><RowDefinition Height="0"/>
+                                    </Grid.RowDefinitions>
+                                    <Button x:Name="RegularModeCard" Style="{StaticResource ModeCard}" Tag="Tiny11" Click="OnModeCardClick"
+                                            AutomationProperties.Name="Tiny11" AutomationProperties.HelpText="选择 Tiny11 并指定 Windows ISO。">
+                                        <Grid RowSpacing="12">
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <FontIcon Glyph="&#xE7F4;" FontSize="64" HorizontalAlignment="Left"
+                                                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                            <StackPanel Grid.Row="1" Spacing="10">
+                                                <TextBlock Text="Tiny11" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Text="使用 Tiny11 原有的移除项。保留 Windows 更新和恢复。"
+                                                           Style="{StaticResource Secondary}" FontSize="13"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="2" Text="保留更新支持" FontSize="12" TextWrapping="Wrap"
+                                                       Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                        </Grid>
+                                    </Button>
+                                    <Button x:Name="CoreModeCard" Grid.Column="1" Style="{StaticResource ModeCard}" Tag="Tiny11Core" Click="OnModeCardClick"
+                                            AutomationProperties.Name="Tiny11 Core" AutomationProperties.HelpText="选择 Tiny11 Core 并指定 Windows ISO。">
+                                        <Grid RowSpacing="12">
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <FontIcon Glyph="&#xE8B7;" FontSize="64" HorizontalAlignment="Left"
+                                                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                            <StackPanel Grid.Row="1" Spacing="10">
+                                                <TextBlock Text="Tiny11 Core" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Text="移除更新和恢复支持，并禁用 Defender。"
+                                                           Style="{StaticResource Secondary}" FontSize="13"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="2" Text="仅用于测试虚拟机" FontSize="12" TextWrapping="Wrap"
+                                                       Foreground="{ThemeResource SystemFillColorCautionBrush}"/>
+                                        </Grid>
+                                    </Button>
+                                    <Button x:Name="CustomModeCard" Grid.Column="2" Style="{StaticResource ModeCard}" Tag="Custom" Click="OnModeCardClick"
+                                            AutomationProperties.Name="自定义" AutomationProperties.HelpText="选择自定义模式并指定 Windows ISO。">
+                                        <Grid RowSpacing="12">
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <FontIcon Glyph="&#xE713;" FontSize="64" HorizontalAlignment="Left"
+                                                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                            <StackPanel Grid.Row="1" Spacing="10">
+                                                <TextBlock Text="自定义" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Text="逐个选择要移除的应用、组件和服务。"
+                                                           Style="{StaticResource Secondary}" FontSize="13"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="2" Text="包含受保护的项目" FontSize="12" TextWrapping="Wrap"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                            <Grid Grid.Row="2" Padding="0,16,0,0">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Windows 11 22H2 或更高版本 · x64 和 ARM64 · Insider / Canary" FontSize="13" TextWrapping="Wrap"/>
+                                    <TextBlock Text="使用前请先在虚拟机中测试 Core 和自定义映像。"
+                                               Style="{StaticResource Secondary}" FontSize="12"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                        <StackPanel x:Name="SourcePanel" Visibility="Collapsed" Spacing="20">
+                            <TextBlock Text="Windows 映像" Style="{StaticResource PageHeading}"/>
+                            <TextBlock x:Name="SourceMode" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" FontSize="13"/>
+                            <TextBlock Text="从 Microsoft 下载最新的 Windows 11，或选择 ISO 或已解压的安装文件夹。检查映像以选择版本。"
+                                       Style="{StaticResource Secondary}"/>
+                            <Grid x:Name="SourceCards" ColumnSpacing="16" RowSpacing="20">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="0"/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <Border x:Name="LocalMediaCard" Grid.Row="1" Style="{StaticResource Card}">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="本地安装介质" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                                    <TextBox x:Name="SourcePathBox" Header="Windows ISO 或安装介质文件夹" TextChanged="OnSourceChanged" PlaceholderText="选择 Windows 11 映像"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <Button Content="选择 ISO" Click="OnChooseIso"/>
+                                        <Button Content="选择文件夹" Click="OnChooseSourceFolder"/>
+                                        <Button Content="检查映像" Click="OnInspect" Style="{StaticResource AccentButtonStyle}"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="EditionChoice" Header="要构建的版本" DisplayMemberPath="Summary"
+                                              SelectionChanged="OnEditionChanged" HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                            </Border>
+                            <Grid x:Name="DownloadCard" RowSpacing="12">
+                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Button Style="{StaticResource ModeCard}" MinHeight="150" Click="OnDownloadLatest" AutomationProperties.Name="下载最新 Windows 11">
+                                    <Grid ColumnSpacing="24" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE896;" FontSize="52" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                        <StackPanel Grid.Column="1" Spacing="8">
+                                            <TextBlock Text="下载最新 Windows 11" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="LatestDownloadDescription" Text="Microsoft 官方 ISO。自动选择架构和语言。" Style="{StaticResource Secondary}"/>
+                                        </StackPanel>
+                                        <FontIcon Grid.Column="2" Glyph="&#xE72A;" FontSize="24" Opacity="{ThemeResource CardArrowOpacity}"/>
+                                    </Grid>
+                                </Button>
+                                <ProgressBar Grid.Row="1" x:Name="DownloadBar" Minimum="0" Maximum="100" Value="0" AutomationProperties.Name="下载进度"/>
+                                <TextBlock Grid.Row="2" x:Name="DownloadStatus" Text="也可以使用已有的 ISO。" Style="{StaticResource Secondary}"/>
+                            </Grid>
+                            </Grid>
+                            <Expander Header="其他官方下载" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                <StackPanel Spacing="14">
+                                    <TextBlock Text="在 Microsoft 下载页面上选择语言，然后在此粘贴 ISO 下载链接。链接通常会在 24 小时后失效。"
+                                               Style="{StaticResource Secondary}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <HyperlinkButton Content="Microsoft x64 下载 ↗" NavigateUri="https://www.microsoft.com/software-download/windows11"/>
+                                        <HyperlinkButton Content="Microsoft ARM64 下载 ↗" NavigateUri="https://www.microsoft.com/software-download/windows11arm64"/>
+                                    </StackPanel>
+                                    <HyperlinkButton Content="官方 Insider / Canary ISO 选择页 ↗" NavigateUri="https://www.microsoft.com/software-download/windowsinsiderpreviewiso" Padding="0"/>
+                                    <TextBox x:Name="DownloadUrlBox" Header="Microsoft ISO 直链" PlaceholderText="https://software.download.prss.microsoft.com/...iso?..."/>
+                                    <TextBox x:Name="PublishedHashBox" Header="公布的 SHA-256（推荐）" PlaceholderText="请从 Microsoft 下载页的 Verify your download 部分复制"/>
+                                    <Button Content="下载 ISO / 续传未完成的下载" Click="OnDownload" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+                        <StackPanel x:Name="CleanupPanel" Visibility="Collapsed" Spacing="18">
+                            <TextBlock Text="组件" Style="{StaticResource PageHeading}"/>
+                            <TextBlock Text="可选择 Tiny11、Tiny11 Core，或用自定义方式自行选择移除项。每项改动都会记录在构建日志中。" Style="{StaticResource Secondary}"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel Spacing="14">
+                                    <ComboBox x:Name="ModeChoice" Visibility="Collapsed" SelectionChanged="OnModeChanged" SelectedIndex="0">
+                                        <ComboBoxItem Content="Tiny11"/>
+                                        <ComboBoxItem Content="Tiny11 Core"/>
+                                        <ComboBoxItem Content="自定义"/>
+                                    </ComboBox>
+                                    <Grid x:Name="RemovalModeCards" ColumnSpacing="16">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="0"/><RowDefinition Height="0"/></Grid.RowDefinitions>
+                                        <Button x:Name="Tiny11Selection" Style="{StaticResource ModeCard}" MinHeight="140" Click="OnRemovalModeClick" Tag="Tiny11" AutomationProperties.Name="使用 Tiny11">
+                                            <StackPanel Spacing="12"><FontIcon Glyph="&#xE7F4;" FontSize="48" HorizontalAlignment="Left"/><TextBlock Text="Tiny11" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="原始移除项。保留更新支持。" Style="{StaticResource Secondary}"/></StackPanel>
+                                        </Button>
+                                        <Button x:Name="CoreSelection" Grid.Column="1" Style="{StaticResource ModeCard}" MinHeight="140" Click="OnRemovalModeClick" Tag="Tiny11Core" AutomationProperties.Name="使用 Tiny11 Core">
+                                            <StackPanel Spacing="12"><FontIcon Glyph="&#xE8B7;" FontSize="48" HorizontalAlignment="Left"/><TextBlock Text="Tiny11 Core" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="仅保留基本功能。用于测试虚拟机。" Style="{StaticResource Secondary}"/></StackPanel>
+                                        </Button>
+                                        <Button x:Name="CustomSelection" Grid.Column="2" Style="{StaticResource ModeCard}" MinHeight="140" Click="OnRemovalModeClick" Tag="Custom" AutomationProperties.Name="使用自定义">
+                                            <StackPanel Spacing="12"><FontIcon Glyph="&#xE713;" FontSize="48" HorizontalAlignment="Left"/><TextBlock Text="自定义" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="自行选择移除项。" Style="{StaticResource Secondary}"/></StackPanel>
+                                        </Button>
+                                    </Grid>
+                                    <TextBlock x:Name="ModeDescription" Style="{StaticResource Secondary}"/>
+                                    <InfoBar x:Name="CoreWarning" IsOpen="False" IsClosable="False" Severity="Warning" Title="Core 会移除更新和恢复支持。"
+                                             Message="Core 会删除组件文件和 WinRE，并禁用 Windows 更新和 Defender。之后将无法添加更新、语言或功能。请在虚拟机中测试映像。"/>
+                                    <TextBlock x:Name="CoreConsentStatus" Visibility="Collapsed" Text="继续之前，系统会要求你接受 Core 的限制。" Style="{StaticResource Secondary}"/>
+                                    <TextBlock x:Name="SelectionCount" Style="{StaticResource Secondary}"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel x:Name="CustomChoices" Visibility="Collapsed" Spacing="18">
+                            <ToggleSwitch x:Name="CustomCoreCheck" Header="应用 Core 的移除项" OffContent="保留服务堆栈维护、恢复和 Defender" OnContent="移除服务堆栈维护、恢复和 Defender" Toggled="OnCustomCoreChanged"/>
+                            <TextBlock Text="勾选的组会被移除或禁用，未勾选的组会保留。如需逐项选择，请使用下方的组件列表。"
+                                       Style="{StaticResource Secondary}"/>
+                            <ComboBox x:Name="OptionFilter" Header="显示选项" SelectedIndex="0" SelectionChanged="OnOptionFilterChanged" HorizontalAlignment="Stretch">
+                                <ComboBoxItem Content="全部"/><ComboBoxItem Content="内置应用"/><ComboBoxItem Content="可选功能"/>
+                                <ComboBoxItem Content="Windows 设置"/><ComboBoxItem Content="高级 / 原始构建器"/>
+                            </ComboBox>
+                            <ItemsControl x:Name="OptionsList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Card}" Padding="18" Margin="0,0,0,8">
+                                            <CheckBox IsChecked="{Binding Selected, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                      AutomationProperties.Name="{Binding Title}" AutomationProperties.FullDescription="{Binding Description}">
+                                                <StackPanel Spacing="5" Margin="6,0,0,0">
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Description}" Style="{StaticResource Secondary}" FontSize="12"/>
+                                                </StackPanel>
+                                            </CheckBox>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel Spacing="14">
+                                    <TextBlock Text="高级移除" Style="{StaticResource Section}"/>
+                                    <TextBlock Text="列出映像中的应用、程序包、功能、服务和组件文件，包括受保护的项目。移除服务只会删除其注册表项，不会删除共享的可执行文件。受保护的程序包可能会拒绝移除。"
+                                               Style="{StaticResource Secondary}"/>
+                                    <Button Content="列出所有组件…" Click="OnOpenExpert" HorizontalAlignment="Left"/>
+                                    <StackPanel x:Name="ExpertPanel" Visibility="Collapsed" Spacing="12">
+                                        <InfoBar IsOpen="True" IsClosable="False" Severity="Warning" Title="不受支持的移除"
+                                                 Message="移除受保护或启动关键的项目可能导致映像无法启动或不安全。直接移除负载会绕过服务堆栈。本工具不提供依赖关系解析，也不保证能够启动。"/>
+                                        <CheckBox x:Name="ExpertConsent" Content="我接受自定义映像无法启动、无法维护或不安全的风险。" Checked="OnChoicesChanged" Unchecked="OnChoicesChanged"/>
+                                        <TextBox x:Name="InventorySearch" PlaceholderText="搜索组件" TextChanged="OnInventoryFilterChanged"
+                                                 AutomationProperties.Name="搜索组件"/>
+                                        <ComboBox x:Name="InventoryFilter" SelectedIndex="0" SelectionChanged="OnInventoryFilterSelection" HorizontalAlignment="Stretch"
+                                                  AutomationProperties.Name="组件类型">
+                                            <ComboBoxItem Content="全部"/><ComboBoxItem Content="ProvisionedApp"/><ComboBoxItem Content="SystemApp"/>
+                                            <ComboBoxItem Content="Feature"/><ComboBoxItem Content="Capability"/><ComboBoxItem Content="Package"/>
+                                            <ComboBoxItem Content="Service"/><ComboBoxItem Content="ComponentPayload"/>
+                                        </ComboBox>
+                                        <TextBlock x:Name="ExpertCount" Style="{StaticResource Secondary}"/>
+                                        <TextBlock Text="单独移除会叠加到所选的组。若要保留某个组件，请将它的组和单独条目都保持未勾选。"
+                                                   Style="{StaticResource Secondary}" FontSize="12"/>
+                                        <ListView x:Name="InventoryList" Height="420" SelectionMode="None" AutomationProperties.Name="映像组件">
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid ColumnSpacing="12" Padding="0,8">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/></Grid.ColumnDefinitions>
+                                                        <CheckBox IsChecked="{Binding Selected, Mode=TwoWay}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch"
+                                                                  AutomationProperties.Name="{Binding Title}" AutomationProperties.FullDescription="{Binding Detail}">
+                                                            <StackPanel Spacing="4" Margin="6,0,0,0">
+                                                                <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="12" FontWeight="SemiBold"/>
+                                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource Secondary}" FontSize="11"/>
+                                                                <TextBlock Text="{Binding Risk}" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="11"/>
+                                                            </StackPanel>
+                                                        </CheckBox>
+                                                        <ComboBox Grid.Column="1" ItemsSource="{Binding Modes}" SelectedIndex="{Binding ModeIndex, Mode=TwoWay}"
+                                                                  Visibility="{Binding HasModes, Converter={StaticResource BoolToVisibility}}" VerticalAlignment="Center"
+                                                                  AutomationProperties.Name="{Binding ModeLabel}"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                        <Button Content="清除自定义选择" Click="OnClearExpert" HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Spacing="20">
+                            <TextBlock Text="构建设置" Style="{StaticResource PageHeading}"/>
+                            <TextBlock Text="选择构建位置以及映像的压缩方式。"
+                                       Style="{StaticResource Secondary}"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel Spacing="14">
+                                    <StackPanel Orientation="Horizontal" Spacing="16"><FontIcon Glyph="&#xE8B7;" FontSize="32"/><TextBlock Text="文件和工作区" FontSize="22" FontWeight="SemiBold"/></StackPanel>
+                                    <TextBox x:Name="WorkspaceBox" Header="工作区（NTFS，通常需要 40 到 70 GiB 可用空间）"/>
+                                    <Button Content="选择工作区" Click="OnChooseWorkspace" HorizontalAlignment="Left"/>
+                                    <TextBox x:Name="OutputBox" Header="新的输出 ISO 文件"/>
+                                    <Button Content="选择输出文件" Click="OnChooseOutput" HorizontalAlignment="Left"/>
+                                    <ComboBox x:Name="CompressionChoice" Header="安装映像压缩" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="恢复 ESD（体积更小，压缩更慢）"/>
+                                        <ComboBoxItem Content="最大压缩 WIM（便于日后维护）"/>
+                                        <ComboBoxItem Content="快速 WIM（构建最快，ISO 更大）"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <Grid ColumnSpacing="20">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE945;" FontSize="36" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Spacing="6">
+                                        <TextBlock Text="极速模式" FontSize="18" FontWeight="SemiBold"/>
+                                        <TextBlock Text="批量移除功能（Feature 与 Capability）并减少日志开销。Core 和快速 WIM 构建会使用更快的工作映像。会占用更多 CPU 和临时空间；最终压缩方式仍按所选设置。" Style="{StaticResource Secondary}"/>
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="TurboCheck" Grid.Column="2" OffContent="关" OnContent="开" AutomationProperties.Name="极速模式"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <Grid ColumnSpacing="20">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE74D;" FontSize="36" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Spacing="6">
+                                        <TextBlock Text="移除冗余映像数据" FontSize="18" FontWeight="SemiBold"/>
+                                        <TextBlock Text="移除已下载的更新缓存、归档的服务堆栈日志、临时文件和崩溃报告。待处理的服务堆栈数据、驱动程序和安装程序会保留。" Style="{StaticResource Secondary}"/>
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="RedundantDataCheck" Grid.Column="2" OffContent="保留" OnContent="移除" AutomationProperties.Name="移除冗余映像数据"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <Grid ColumnSpacing="20">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE8B7;" FontSize="36" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Spacing="6">
+                                        <TextBlock Text="省略 .NET 3.5 安装负载" FontSize="18" FontWeight="SemiBold"/>
+                                        <TextBlock Text="不在 ISO 中包含 sources\sxs。你现在仍可包含 .NET 3.5；日后启用则需要单独的匹配介质或 Windows 更新。Core 无法在日后添加。" Style="{StaticResource Secondary}"/>
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="OmitSetupCheck" Grid.Column="2" OffContent="保留" OnContent="省略" AutomationProperties.Name="省略 .NET 3.5 安装负载"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <Grid ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE8B9;" FontSize="36" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="紧凑安装" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="使用压缩的系统文件安装 Windows，以减少磁盘占用。" Style="{StaticResource Secondary}"/></StackPanel>
+                                    <ToggleSwitch x:Name="CompactCheck" Grid.Column="2" IsOn="True" OffContent="关" OnContent="开" AutomationProperties.Name="紧凑安装"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <Grid ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE943;" FontSize="36" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text=".NET Framework 3.5" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="包含对较旧应用的支持。所需源文件必须存在于 ISO 中。" Style="{StaticResource Secondary}"/></StackPanel>
+                                    <ToggleSwitch x:Name="NetFxCheck" Grid.Column="2" OffContent="关" OnContent="开" AutomationProperties.Name=".NET Framework 3.5"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <Grid ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE77B;" FontSize="36" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="本地账户设置" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="在安装过程中优先使用本地登录。某些较新的版本可能仍要求使用 Microsoft 账户。" Style="{StaticResource Secondary}"/></StackPanel>
+                                    <ToggleSwitch x:Name="LocalAccountCheck" Grid.Column="2" OffContent="关" OnContent="开" AutomationProperties.Name="本地账户设置"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <Grid ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE8B7;" FontSize="36" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="保留工作文件" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="保存 ISO 后保留修改过的安装介质。会占用更多磁盘空间。" Style="{StaticResource Secondary}"/></StackPanel>
+                                    <ToggleSwitch x:Name="KeepFilesCheck" Grid.Column="2" OffContent="关" OnContent="开" AutomationProperties.Name="保留工作文件"/>
+                                </Grid>
+                            </Border>
+                            <TextBlock x:Name="ToolStatus" Text="映像和 ISO 工具会自动准备。" Style="{StaticResource Secondary}"/>
+                        </StackPanel>
+                        <StackPanel x:Name="ReviewPanel" Visibility="Collapsed" Spacing="20">
+                            <TextBlock Text="检查确认" Style="{StaticResource PageHeading}"/>
+                            <TextBlock Text="构建前请检查映像、移除项集合和输出。" Style="{StaticResource Secondary}"/>
+                            <Grid x:Name="ReviewCards" ColumnSpacing="16" RowSpacing="16">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="0"/><RowDefinition Height="0"/></Grid.RowDefinitions>
+                                <Border x:Name="ReviewImageCard" Style="{StaticResource Card}"><StackPanel Spacing="12"><FontIcon Glyph="&#xE7F4;" FontSize="40" HorizontalAlignment="Left" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/><TextBlock Text="Windows 映像" FontSize="18" FontWeight="SemiBold"/><TextBlock x:Name="ReviewImage" Style="{StaticResource Secondary}"/></StackPanel></Border>
+                                <Border x:Name="ReviewModeCard" Grid.Column="1" Style="{StaticResource Card}"><StackPanel Spacing="12"><FontIcon Glyph="&#xE713;" FontSize="40" HorizontalAlignment="Left" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/><TextBlock x:Name="ReviewMode" FontSize="18" FontWeight="SemiBold"/><TextBlock x:Name="ReviewRemovals" Style="{StaticResource Secondary}"/></StackPanel></Border>
+                                <Border x:Name="ReviewPathsCard" Grid.Row="1" Style="{StaticResource Card}"><StackPanel Spacing="12"><FontIcon Glyph="&#xE8B7;" FontSize="40" HorizontalAlignment="Left" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/><TextBlock Text="输出和工作区" FontSize="18" FontWeight="SemiBold"/><TextBlock x:Name="ReviewPaths" Style="{StaticResource Secondary}" IsTextSelectionEnabled="True"/></StackPanel></Border>
+                                <Border x:Name="ReviewOptionsCard" Grid.Row="1" Grid.Column="1" Style="{StaticResource Card}"><StackPanel Spacing="12"><FontIcon Glyph="&#xE8B9;" FontSize="40" HorizontalAlignment="Left" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/><TextBlock Text="安装选项" FontSize="18" FontWeight="SemiBold"/><TextBlock x:Name="ReviewOptions" Style="{StaticResource Secondary}"/></StackPanel></Border>
+                            </Grid>
+                            <Border Style="{StaticResource Card}">
+                                <Expander Header="已选移除项和完整配方" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <TextBox x:Name="ReviewText" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="Transparent" FontSize="13"/>
+                                </Expander>
+                            </Border>
+                            <InfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="取决于构建方式的设置"
+                                     Message="某些策略仅适用于特定的版本或构建。功能更新可能会重新安装应用。本地账户和硬件绕过均为尽力而为。在依赖生成的 ISO 之前，请先测试。"/>
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Button Content="保存配方" Click="OnSaveRecipe"/>
+                                <Button Content="加载配方" Click="OnLoadRecipe"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel x:Name="BuildPanel" Visibility="Collapsed" Spacing="32">
+                            <StackPanel Spacing="12">
+                                <TextBlock x:Name="BuildHeading" Text="构建" Style="{StaticResource PageHeading}"/>
+                                <TextBlock x:Name="BuildDescription" Text="所选版本将被复制、修改、压缩并保存为可启动的 ISO。"
+                                           Style="{StaticResource Secondary}" FontSize="16"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource Card}" Padding="32">
+                                <StackPanel Spacing="32">
+                                    <Grid ColumnSpacing="24">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <Grid Width="64" Height="64" VerticalAlignment="Center">
+                                            <ProgressRing x:Name="BuildActivity" IsActive="False" Width="64" Height="64" AutomationProperties.Name="构建活动"/>
+                                            <FontIcon x:Name="BuildGlyph" Glyph="&#xE7C5;" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                      Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                        </Grid>
+                                        <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                                            <TextBlock x:Name="CurrentStage" Text="等待开始" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="CurrentMessage" Style="{StaticResource Secondary}" Text="尚未进行任何更改。"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="BuildPercent" Grid.Column="2" Text="0%" FontSize="48" FontWeight="Light" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <StackPanel Spacing="12">
+                                        <Grid ColumnSpacing="16">
+                                            <TextBlock Text="总体进度" Style="{StaticResource FieldLabel}"/>
+                                            <TextBlock x:Name="OverallStep" HorizontalAlignment="Right" Style="{StaticResource Hint}"/>
+                                        </Grid>
+                                        <ProgressBar x:Name="OverallBar" Minimum="0" Maximum="100" MinHeight="10" AutomationProperties.Name="总体进度">
+                                            <ProgressBar.Resources><x:Double x:Key="ProgressBarTrackHeight">10</x:Double></ProgressBar.Resources>
+                                        </ProgressBar>
+                                    </StackPanel>
+                                    <StackPanel Spacing="12">
+                                        <Grid ColumnSpacing="16">
+                                            <TextBlock Text="当前操作" Style="{StaticResource Secondary}" FontSize="14"/>
+                                            <TextBlock x:Name="CurrentPercent" HorizontalAlignment="Right" Style="{StaticResource Hint}"/>
+                                        </Grid>
+                                        <ProgressBar x:Name="BuildBar" Minimum="0" Maximum="100" AutomationProperties.Name="当前操作进度"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="CancelHint" Visibility="Collapsed" Style="{StaticResource Hint}"
+                                               Text="如需停止，请使用右上角的安全取消。它会在下一个安全点停止。源文件不会被修改；工作文件、已保存的进度和日志都会保留。"/>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="ResultPanel" Style="{StaticResource Card}" Padding="32" Visibility="Collapsed">
+                                <StackPanel Spacing="24">
+                                    <Grid ColumnSpacing="16">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE73E;" FontSize="32" VerticalAlignment="Top" Foreground="{ThemeResource SystemFillColorSuccessBrush}"/>
+                                        <StackPanel Grid.Column="1" Spacing="8">
+                                            <TextBlock Text="ISO 已创建" Style="{StaticResource SectionTitle}"/>
+                                            <TextBlock x:Name="ResultMetrics" Style="{StaticResource Secondary}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <InfoBar x:Name="ResultWarnings" IsOpen="False" IsClosable="False" Severity="Warning" Title="已完成，但有警告"/>
+                                    <StackPanel Spacing="16">
+                                        <TextBox x:Name="ResultPath" Header="输出 ISO" IsReadOnly="True"/>
+                                        <TextBox x:Name="ResultHash" Header="SHA-256" IsReadOnly="True" FontFamily="Consolas"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <Button Content="打开输出文件夹" Click="OnOpenOutputFolder"/>
+                                        <Button Content="打开日志和报告" Click="OnOpenLogs"/>
+                                    </StackPanel>
+                                    <TextBlock Text="安装 Windows 前请先在虚拟机中测试该 ISO。" Style="{StaticResource Hint}"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel Spacing="16">
+                                <Grid ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="操作历史" Style="{StaticResource SectionTitle}"/>
+                                    <TextBlock x:Name="HistoryCount" Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource Secondary}" Text="已完成 0/7 个阶段"/>
+                                </Grid>
+                                <TextBlock Text="展开某个阶段即可查看每个步骤及错误详情。" Style="{StaticResource Hint}"/>
+                                <ItemsControl x:Name="BuildStages">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="12"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                  IsExpanded="{Binding Expanded, Mode=TwoWay}" AutomationProperties.Name="{Binding AutomationName}">
+                                            <Expander.Header>
+                                                <Grid ColumnSpacing="16" HorizontalAlignment="Stretch" MinHeight="56">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                    <FontIcon Glyph="{Binding Glyph}" FontSize="24" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Status}" Style="{StaticResource Secondary}" FontSize="13" VerticalAlignment="Center" TextAlignment="Right" MaxWidth="260"/>
+                                                </Grid>
+                                            </Expander.Header>
+                                            <ListView ItemsSource="{Binding Operations}" SelectionMode="None" MaxHeight="360">
+                                                <ListView.ItemTemplate><DataTemplate>
+                                                    <Grid ColumnSpacing="16" Padding="0,10" AutomationProperties.Name="{Binding AutomationName}">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <Grid Width="20" Height="20" VerticalAlignment="Top" Margin="0,2,0,0">
+                                                            <FontIcon Glyph="{Binding Glyph}" FontSize="16" Opacity="0.65"
+                                                                      Visibility="{Binding State, Converter={StaticResource StateVisibility}, ConverterParameter='Pending|Skipped'}"/>
+                                                            <FontIcon Glyph="&#xE73E;" FontSize="16" Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                                                                      Visibility="{Binding State, Converter={StaticResource StateVisibility}, ConverterParameter='Completed'}"/>
+                                                            <FontIcon Glyph="&#xE895;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                                                      Visibility="{Binding State, Converter={StaticResource StateVisibility}, ConverterParameter='Running'}"/>
+                                                            <FontIcon Glyph="&#xE711;" FontSize="16" Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                                                      Visibility="{Binding State, Converter={StaticResource StateVisibility}, ConverterParameter='Failed'}"/>
+                                                            <FontIcon Glyph="&#xE711;" FontSize="16" Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                                                      Visibility="{Binding State, Converter={StaticResource StateVisibility}, ConverterParameter='Cancelled'}"/>
+                                                        </Grid>
+                                                        <StackPanel Grid.Column="1" Spacing="6">
+                                                            <TextBlock Text="{Binding Title}" TextWrapping="Wrap"/>
+                                                            <TextBlock Text="{Binding Detail}" Visibility="{Binding HasDetail, Converter={StaticResource BoolToVisibility}}" Style="{StaticResource Secondary}" FontSize="12" IsTextSelectionEnabled="True"/>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="2" Text="{Binding Status}" Style="{StaticResource Secondary}" FontSize="12" VerticalAlignment="Top" Margin="0,3,0,0"/>
+                                                    </Grid>
+                                                </DataTemplate></ListView.ItemTemplate>
+                                            </ListView>
+                                        </Expander>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <Expander x:Name="BuildDetails" Header="构建详情" IsExpanded="False" Expanding="OnDetailsExpanding"
+                                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                <TextBox x:Name="BuildLog" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                                         Height="300" FontFamily="Consolas" FontSize="11" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         SelectionChanged="OnLogSelectionChanged" AutomationProperties.Name="构建日志"/>
+                            </Expander>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+                <TextBlock x:Name="StepNumber" Grid.Row="2" Text="1" FontSize="112" FontWeight="Light"
+                           Opacity="0.10" Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                           HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,28,0"
+                           IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw"/>
+                <Grid x:Name="ActionArea" Grid.Row="3" Padding="32,8,32,24" ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Button x:Name="ResumeRunButton" Visibility="Collapsed" Content="继续构建" Click="OnResumeStopped"
+                                AutomationProperties.HelpText="从已保存的进度继续此次构建。"/>
+                    </StackPanel>
+                    <Button Grid.Column="2" x:Name="NextButton" MinWidth="140" Click="OnNext" Background="Transparent" BorderThickness="0" Padding="8,4">
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <TextBlock x:Name="ActionLabel" Text="开始" FontSize="32" FontWeight="Light" Opacity="{ThemeResource ActionLabelOpacity}"/>
+                            <FontIcon x:Name="ActionArrow" Glyph="&#xE72A;" FontSize="24" Opacity="{ThemeResource ActionArrowOpacity}"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+                </Grid>
+                <!-- Drawn over the pane so showing it never moves the page. -->
+                <ProgressBar x:Name="BusyBar" IsIndeterminate="True" VerticalAlignment="Top" Margin="16,0,0,0" IsHitTestVisible="False"
+                             Visibility="Collapsed" AutomationProperties.Name="正在处理"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

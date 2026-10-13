@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.vs/
+artifacts/
+TestResults/
+_l10n/
+*.user
+*.iso
+*.wim
+*.esd
+*.swm
+*.vhd
+*.vhdx
